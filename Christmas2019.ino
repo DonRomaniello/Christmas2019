@@ -11,9 +11,10 @@ Timer t;
 #define COLOR_ORDER RGB
 CRGB leds[NUM_LEDS];
 
-#define UPDATES_PER_SECOND 250
+#define FPS 250
 
-
+//When you implement brightness control, make it look like this:
+// If Brightness < (FPS / 30):: Brightness=0
 
 
 
@@ -21,7 +22,7 @@ void setup() {
     delay( 3000 ); // power-up safety delay
     FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
     FastLED.setBrightness(  BRIGHTNESS );
-    t.every((1000/UPDATES_PER_SECOND), showleds, (void*)0);
+    t.every((1000/FPS), showleds, (void*)0);
 
 
 
