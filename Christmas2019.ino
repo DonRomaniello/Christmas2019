@@ -1,19 +1,28 @@
+#include <Encoder.h>
 
 
 #include <FastLED.h>
+
 #include "Timer.h"
+#include "ClickButton.h"
 
 Timer t;
 
-#define NUM_STRIPS 1
-#define NUM_LEDS_PER_STRIP 200
+#define NUM_STRIPS 3
+#define NUM_LEDS_PER_STRIP 100
 #define NUM_LEDS NUM_LEDS_PER_STRIP * NUM_STRIPS
 #define LED_TYPE    WS2811
+#define COLOR_CORRECTION UncorrectedTemperature
 #define BRIGHTNESS  255
 
-#define FPS 60
+#define FPS 250
 
-CRGB leds[NUM_STRIPS * NUM_LEDS_PER_STRIP];
+CRGB leds[NUM_LEDS];
+
+
+const int buttonPin1 = 23;
+ClickButton button1(buttonPin1, LOW, CLICKBTN_PULLUP);
+
 
 
 
@@ -29,12 +38,18 @@ unsigned long time_now = 0;
 unsigned long time_now2 = 0;
 
 // Speed
-int period = 10;
+int period = 100;
 
 // Values That Need Be addressed
 int changer = 0;
 int changeg = 0;
 int changeb = 0;
+
+int raw = 255;
+int gaw = 255;
+int baw = 255;
+
+
 
 int i = 0;
 
@@ -59,15 +74,29 @@ CRGB cold = CRGB(0,0,0);
 int fade = 0;
 
 
+Encoder myEnc(21, 22);
+long oldPosition  = 255;
+
+int clickers = 0;
+
+
 void setup() {
+
   // tell FastLED there's 60 NEOPIXEL leds on pin 10, starting at index 0 in the led array
-  FastLED.addLeds<LED_TYPE, 1, RGB>(leds, 0, NUM_LEDS).setCorrection( UncorrectedTemperature );
+  FastLED.addLeds<LED_TYPE, 1, RGB>(leds, 0, NUM_LEDS_PER_STRIP).setCorrection( COLOR_CORRECTION );
 
   // tell FastLED there's 60 NEOPIXEL leds on pin 11, starting at index 60 in the led array
-  //FastLED.addLeds<LED_TYPE, 10, RGB>(leds, NUM_LEDS_PER_STRIP, NUM_LEDS_PER_STRIP).setCorrection( UncorrectedTemperature );
+  FastLED.addLeds<LED_TYPE, 2, RGB>(leds, NUM_LEDS_PER_STRIP, NUM_LEDS_PER_STRIP).setCorrection( COLOR_CORRECTION );
 
   // tell FastLED there's 60 NEOPIXEL leds on pin 12, starting at index 120 in the led array
-  //FastLED.addLeds<NEOPIXEL, 12>(leds, 2 * NUM_LEDS_PER_STRIP, NUM_LEDS_PER_STRIP);
+ FastLED.addLeds<LED_TYPE, 3, RGB>(leds, 2 * NUM_LEDS_PER_STRIP, NUM_LEDS_PER_STRIP).setCorrection( COLOR_CORRECTION );
+
+ Serial.begin(9600);
+
+
+
+
+  
       FastLED.setBrightness(  BRIGHTNESS );
 
 
@@ -95,18 +124,31 @@ cold = CRGB(random8(),random8(),random8());
 
 // Set Up Loop that runs every frame (FPS)      
  t.every((1000/FPS), showleds, (void*)0);
+
+
+ 
 }
 
 void loop() {
 
    t.update();
-  colordrops();
+  //whitey();
+  //colordrops();
+  //calibrator();
+  train();
 }
 
 void showleds(void *context)
 {
   FastLED.show();
-}
+  button1.Update();
+  if (button1.clicks != 0) clickers = button1.clicks;
+} 
+
+
+
+
+/* Color Drops  Color Drops  Color Drops  Color Drops  Color Drops  Color Drops  Color Drops  Color Drops */
 
 void colordrops(){
 trainran = false;
@@ -147,3 +189,80 @@ time_now2 = millis();
 if (fade == 255) fade = 0;
 
 }
+
+
+
+/* Calibrator  Calibrator  Calibrator  Calibrator  Calibrator  Calibrator  Calibrator  Calibrator  Calibrator */
+
+void calibrator() {
+  long newPosition = myEnc.read();
+  if (newPosition != oldPosition) {
+    oldPosition = newPosition;
+    Serial.println(newPosition);
+  }
+if (button1.clicks == 0) {
+raw = newPosition;
+}
+if (button1.clicks == 1) {
+gaw = newPosition;
+}
+if (button1.clicks == 2) {
+baw = newPosition;
+}
+if (button1.clicks == -1) {
+newPosition = 255;
+}
+
+//fill_solid(leds, 300, CRGB(raw, gaw, baw));
+  
+fill_solid(leds, 300, CRGB::White);
+  
+
+
+}
+
+
+
+// Train  Train  Train  Train  Train  Train  Train  Train  Train  Train  Train  Train  Train  
+
+void train() {
+
+hdran = false;
+cdran = false;
+
+
+if(millis() > time_now + period){
+    time_now = millis();
+    fade++;
+}
+
+
+for (int i = 0; i < 300; i++) {
+  leds[i] = blend(CRGB(rchaos1[(i+2)], gchaos1[(i+2)], bchaos1[(i+2)]), CRGB(rchaos1[(i+1)], gchaos1[(i+1)], bchaos1[(i+1)]), ease8InOutQuad(fade));
+}
+
+if (fade == 255) { 
+  fade = 0;
+rchaos1[0] = random8();
+gchaos1[0] = random8();
+bchaos1[0] = random8();
+for (int i = 301; i > 0; i--) {
+  rchaos1[i] = rchaos1[(i - 1)];
+  gchaos1[i] = gchaos1[(i - 1)];
+  bchaos1[i] = bchaos1[(i - 1)];
+}
+}
+
+
+}
+
+
+void whitey() {
+
+
+fill_solid(leds,300, CRGB::White);
+  
+}
+
+
+  
