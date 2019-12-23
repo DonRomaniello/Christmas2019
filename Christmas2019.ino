@@ -32,13 +32,21 @@ bool hdran = false; // Has hue drops run
 bool trainran = false;
 bool pdran = false;
 bool cdran = false; // Has Color Drops Run
+bool whitetrainran = false; //Has Whitey run
+bool huetrainran = false; // Has Hue Train Run
+bool correctionlatch = false;
+
+
 
 // Timers
 unsigned long time_now = 0;
 unsigned long time_now2 = 0;
+unsigned long time_now3 = 0;
 
 // Speed
-int period = 100;
+int period = 20;
+int period2 = 1000;
+int period3 = 1000;
 
 // Values That Need Be addressed
 int changer = 0;
@@ -48,6 +56,19 @@ int changeb = 0;
 int raw = 255;
 int gaw = 255;
 int baw = 255;
+
+
+//Color Limits
+
+int whiteSatmax = 96;
+int whiteValmin = 200;
+
+int HueMin = 0;
+int HueMax = 255;
+int BriMax = 255;
+int BriMin = 200;
+int SatMax = 255;
+int SatMin = 192;
 
 
 
@@ -63,6 +84,15 @@ int bchaos1[NUM_LEDS + 2];
 int rchaos2[NUM_LEDS + 2];
 int gchaos2[NUM_LEDS + 2];
 int bchaos2[NUM_LEDS + 2];
+int hchaos1[NUM_LEDS + 2];
+int schaos1[NUM_LEDS + 2];
+int vchaos1[NUM_LEDS + 2];
+int hchaos2[NUM_LEDS + 2];
+int schaos2[NUM_LEDS + 2];
+int vchaos2[NUM_LEDS + 2];
+
+
+
 
 // Random starting colors
 CRGB cola = CRGB(0,0,0);
@@ -83,13 +113,13 @@ int clickers = 0;
 void setup() {
 
   // tell FastLED there's 60 NEOPIXEL leds on pin 10, starting at index 0 in the led array
-  FastLED.addLeds<LED_TYPE, 1, RGB>(leds, 0, NUM_LEDS_PER_STRIP).setCorrection( COLOR_CORRECTION );
+  FastLED.addLeds<LED_TYPE, 3, RGB>(leds, 0, NUM_LEDS_PER_STRIP).setCorrection( COLOR_CORRECTION );
 
   // tell FastLED there's 60 NEOPIXEL leds on pin 11, starting at index 60 in the led array
   FastLED.addLeds<LED_TYPE, 2, RGB>(leds, NUM_LEDS_PER_STRIP, NUM_LEDS_PER_STRIP).setCorrection( COLOR_CORRECTION );
 
   // tell FastLED there's 60 NEOPIXEL leds on pin 12, starting at index 120 in the led array
- FastLED.addLeds<LED_TYPE, 3, RGB>(leds, 2 * NUM_LEDS_PER_STRIP, NUM_LEDS_PER_STRIP).setCorrection( COLOR_CORRECTION );
+ FastLED.addLeds<LED_TYPE, 1, RGB>(leds, 2 * NUM_LEDS_PER_STRIP, NUM_LEDS_PER_STRIP).setCorrection( COLOR_CORRECTION );
 
  Serial.begin(9600);
 
@@ -111,6 +141,13 @@ for (int i = 0; i < (NUM_LEDS + 2); i++) {
   rchaos2[i] = random8();
   gchaos2[i] = random8();
   bchaos2[i] = random8();
+  hchaos1[i] = random8();
+  schaos1[i] = random8();
+  vchaos1[i] = random8();
+  hchaos2[i] = random8();
+  schaos2[i] = random8();
+  vchaos2[i] = random8();
+  
 }
 
 cola = CRGB(random8(),random8(),random8());
@@ -132,10 +169,12 @@ cold = CRGB(random8(),random8(),random8());
 void loop() {
 
    t.update();
-  //whitey();
+  //whitetrain();
   //colordrops();
   //calibrator();
-  train();
+  //train();
+  //allblue();
+  huetrain();
 }
 
 void showleds(void *context)
@@ -213,7 +252,6 @@ if (button1.clicks == -1) {
 newPosition = 255;
 }
 
-//fill_solid(leds, 300, CRGB(raw, gaw, baw));
   
 fill_solid(leds, 300, CRGB::White);
   
@@ -257,12 +295,150 @@ for (int i = 301; i > 0; i--) {
 }
 
 
-void whitey() {
+void whitetrain() {
 
-
-fill_solid(leds,300, CRGB::White);
-  
+// Fill with Whites for first run
+if (whitetrainran == false) {
+for (int i = 0; i < (NUM_LEDS + 2); i++) {
+  hchaos1[i] = random8();
+  schaos1[i] = random8(whiteSatmax);
+  vchaos1[i] = random8(whiteValmin, 255);
+  hchaos2[i] = random8();
+  schaos2[i] = random8(whiteSatmax);
+  vchaos2[i] = random8(whiteValmin, 255);
+}
+for (int i = NUM_LEDS; i > 0; i--) {
+leds[i] = CHSV((int)hchaos1,(int)schaos1,(int)vchaos1); 
+}
+whitetrainran = true;
+fade = 0;
 }
 
 
+//Non-blocking time check
+if(millis() > time_now + period){
+    time_now = millis();
+    fade++;
+}
+
+for (int i = 0; i < 300; i++) {
+  leds[i] = blend(CHSV(hchaos1[(i+2)], schaos1[(i+2)], vchaos1[(i+2)]), CHSV(hchaos1[(i+1)], schaos1[(i+1)], vchaos1[(i+1)]), ease8InOutQuad(fade), SHORTEST_HUES);
+}
+
+
+if (fade == 255) {
+fade = 0; // Reset fade
+hchaos1[0] = random8();
+schaos1[0] = random8(whiteSatmax);
+vchaos1[0] = random8(whiteValmin, 255);
+for (int i = 301; i > 0; i--) {
+  hchaos1[i] = hchaos1[(i - 1)];
+  schaos1[i] = schaos1[(i - 1)];
+  vchaos1[i] = vchaos1[(i - 1)];
+}
+}
+
+
+
+}
+
+
+
+
+void huetrain() {
+
+
+// Fill with Hues for first run
+if (huetrainran == false) {
+for (int i = 0; i < (NUM_LEDS + 2); i++) {
+  hchaos1[i] = random8(HueMin, HueMax);
+  schaos1[i] = random8(SatMin, SatMax);
+  vchaos1[i] = random8(BriMin, BriMax);
+  hchaos2[i] = random8(HueMin, HueMax);
+  schaos2[i] = random8(SatMin, SatMax);
+  vchaos2[i] = random8(BriMin, BriMax);
+}
+for (int i = NUM_LEDS; i > 0; i--) {
+leds[i] = CHSV((int)hchaos1,(int)schaos1,(int)vchaos1); 
+}
+huetrainran = true;
+fade = 0;
+}
+
+
+//Non-blocking time check
+if(millis() > time_now + period){
+    time_now = millis();
+    fade++;
+}
+
+
+// Update each LED to be a fade between two values
+for (int i = 0; i < 300; i++) {
+  leds[i] = blend(CHSV(hchaos1[(i+2)], schaos1[(i+2)], vchaos1[(i+2)]), CHSV(hchaos1[(i+1)], schaos1[(i+1)], vchaos1[(i+1)]), ease8InOutQuad(fade), SHORTEST_HUES);
+}
+
+
+// When fade is 100%
+if (fade == 255) {
+fade = 0; // Reset fade
+
+// Create a new random value for the first entry
+  hchaos1[i] = random8(HueMin, HueMax);
+  schaos1[i] = random8(SatMin, SatMax);
+  vchaos1[i] = random8(BriMin, BriMax);
+
+  // Move values over one
+for (int i = 301; i > 0; i--) {
+  hchaos1[i] = hchaos1[(i - 1)];
+  schaos1[i] = schaos1[(i - 1)];
+  vchaos1[i] = vchaos1[(i - 1)];
+}
+}
+
+
+
+}
+
+
+
+// Allblue is actually just a test loop
+void allblue () {
+for (int i = 0; i < 100; i++) {
+  leds[i] = CRGB(i, 0, 255);
+}
+for (int i = 0; i < 100; i++) {
+  leds[i+100] = CRGB(255, i, 0);
+}
+for (int i = 0; i < 100; i++) {
+  leds[i+200] = CRGB(0, 255, i);
+}
+
+
+
+}
+
+
+
+// Color Correction
+
+void corrections () {
+
   
+if (correctionlatch == false) {
+ LEDS.setCorrection( Candle );
+}
+
+ 
+if (correctionlatch == true) {
+ LEDS.setCorrection( Halogen );
+}
+
+if(millis() > time_now3 + period3){
+  time_now3 = millis();
+  correctionlatch = !(correctionlatch);   
+}
+
+
+
+}
